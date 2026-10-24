@@ -2,7 +2,7 @@ from os import listdir
 from pydantic import HttpUrl
 from classes import Thread
 
-BASE = "https://www.soyjak.st"
+BASE = "https://soyjak.st"
 
 def convert() -> dict[str, list[Thread]]:
     data: dict[str, list[Thread]] = {"keyed": []}

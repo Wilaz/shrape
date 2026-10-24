@@ -8,11 +8,13 @@ from typed_argparse import Parser
 from tqdm import tqdm
 from curl_cffi import get
 
-from classes import Args, Thread
-from db import dump_threads, get_threads
+from classes import Args, Thread, Token
+from db import dump_threads, get_threads, get_token, dump_token
 from utility import get_thread_by_url, BASE
+from tokens import generate_token
 
-ACK = "404 - Not found"
+SLID = "404 - Not found"
+
 
 def process(path: Path, file) -> tuple[str, Path]:
     # Find the href attribute of the child element
@@ -57,20 +59,43 @@ def download(thread: Thread, unattended: bool) -> Thread:
     board = url.path.split("/")[1]
     id = url.path.split("/")[3].split(".")[0]
     path: Path = Path(f"./out/[{board}] ({id})/")
-    contents = bs4.BeautifulSoup(get(str(url), impersonate="chrome").text, "html.parser")
 
-    assert contents.title
+    contents = None
 
-    if contents.title.string == ACK:
-        print(f"Thread #{id} on board '{board}' has -acked")
+    while True:
+        try:
+            token: Token = get_token()
+        except Exception as _:
+            dump_token(generate_token(url))
+
+        contents = bs4.BeautifulSoup(
+            get(
+                str(url),
+                impersonate="chrome",
+                cookies=token.cookies,
+                headers=token.headers,
+            ).text,
+            "html.parser",
+        )
+
+        assert contents.title
+        if str(contents.title) == "<title>Just a moment...</title>":
+            dump_token(generate_token(url))
+        else:
+            break
+
+    if contents.title.string == SLID:
+        print(f"Thread #{id} on board '{board}' has slid")
         if unattended:
-            thread.acked = True
+            thread.slid = True
             return thread
         if confirm("Do you want to move it to locked?").ask():
-            thread.acked = True
+            thread.slid = True
             return thread
 
-    filelist: bs4.ResultSet[bs4.element.PageElement | bs4.Tag] = contents(class_="fileinfo")
+    filelist: bs4.ResultSet[bs4.element.PageElement | bs4.Tag] = contents(
+        class_="fileinfo"
+    )
 
     existing, duplicates, files = info(path, filelist)
     file_count = len(files)
@@ -101,8 +126,13 @@ def download(thread: Thread, unattended: bool) -> Thread:
         # Download files
         for file in files:
             href, location = process(path, file)
-            img_response = get(BASE + href, impersonate="chrome")
-
+            img_response = get(
+                BASE + href,
+                impersonate="chrome",
+                timeout=None,
+                cookies=token.cookies,
+                headers=token.headers,
+            )
             with open(location, "wb") as file:
                 _ = file.write(img_response.content)
 

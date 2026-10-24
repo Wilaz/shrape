@@ -10,7 +10,7 @@ class Thread:
     name: str | None = None
     first_scraped: datetime | None = None
     last_scraped: datetime | None = None
-    acked: bool = False
+    slid: bool = False
 
     def to_dict(self) -> dict[str, Any]:
         thread_dict: dict[str, Any] = {"url": str(self.url)}
@@ -27,10 +27,10 @@ class Thread:
         return thread_dict
 
     @classmethod
-    def from_dict(cls, dictionary: dict[str, Any], acked: bool = False) -> Self:
+    def from_dict(cls, dictionary: dict[str, Any], slid: bool = False) -> Self:
         assert "url" in dictionary
 
-        thread = cls(HttpUrl(dictionary["url"]), acked=acked)
+        thread = cls(HttpUrl(dictionary["url"]), slid=slid)
 
         if "name" in dictionary:
             thread.name = dictionary["name"]
@@ -43,9 +43,25 @@ class Thread:
 
         return thread
 
-    def __init__(self, url: HttpUrl, acked: bool = False) -> None:
+    def __init__(self, url: HttpUrl, slid: bool = False) -> None:
         self.url = url
-        self.acked = acked
+        self.slid = slid
+
+
+class Token:
+    cookies: str
+    headers: dict[str, str]
+
+    def to_dict(self):
+        return {"token": {"cookies": self.cookies, "headers": self.headers}}
+
+    @classmethod
+    def from_dict(cls, dictionary: dict[str, Any]) -> Self:
+        return cls(dictionary["token"]["cookies"], dictionary["token"]["headers"])
+
+    def __init__(self, cookies: str, headers: dict[str, str]) -> None:
+        self.cookies = cookies
+        self.headers = headers
 
 
 class Args(tap.TypedArgs):
