@@ -1,7 +1,7 @@
 [project]
-name = "sharty-downloader"
-version = "0.1.4"
-description = "Scrapes images off of Vichan"
+name = "shrape"
+version = "0.1.5"
+description = "Scrapes images off of a Vichan instance"
 requires-python = ">=3.13"
 dependencies = [
     "beautifulsoup4>=4.15.0",
