@@ -6,10 +6,17 @@ requires-python = ">=3.13"
 dependencies = [
     "beautifulsoup4>=4.15.0",
     "curl-cffi>=0.16.0",
+    "patchright>=1.64.4",
+    "pickledb>=1.6",
     "pydantic>=2.14.0",
     "questionary>=2.1.1",
     "rtoml>=0.14.0",
     "tqdm>=4.70.0",
     "typed-argparse>=0.3.1",
-    "undetected-chromedriver>=3.5.5",
 ]
+
+[project.scripts]
+download = "shrape.main:main"
+
+[tool.uv]
+package = true

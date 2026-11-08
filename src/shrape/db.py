@@ -3,11 +3,12 @@ from typing import Any
 
 from rtoml import load, dump
 
-from classes import Thread, Token
-from utility import get_thread_by_url
+from pickledb import PickleDB
+
+from shrape.classes import Thread, CF_Token
+from shrape.utility import get_thread_by_url, STORAGE
 
 THREADS = Path("./threads.toml")
-TOKEN = Path("./turnstile.toml")
 
 
 def get_threads() -> list[Thread]:
@@ -48,9 +49,11 @@ def dump_threads(new_threads: list[Thread]) -> None:
     )
 
 
-def get_token() -> Token:
-    return Token.from_dict(load(TOKEN))
+def get_cf_token() -> CF_Token:
+    with PickleDB(STORAGE) as db:
+        return CF_Token.from_dict(db.get("cf_token"))
 
 
-def dump_token(token: Token) -> None:
-    _ = dump(token.to_dict(), TOKEN)
+def dump_cf_token(token: CF_Token) -> None:
+    with PickleDB(STORAGE) as db:
+        db.set("cf_token", token.to_dict())

@@ -1,14 +1,32 @@
-from typing import Any
-import os
-from patchright.sync_api import sync_playwright
 from pydantic import HttpUrl
-from classes import Token
+from shrape.classes import Thread
+from typing import Any
+from patchright.sync_api import sync_playwright
+from shrape.classes import CF_Token
+from pathlib import Path
+from pickledb import PickleDB
+
+STORAGE = Path("./storage.json")
 
 
-def generate_token(url: HttpUrl) -> Token:
+def get_thread_by_url(url: HttpUrl, thread_list: list[Thread]) -> Thread | None:
+    for thread in thread_list:
+        if thread.url == url:
+            return thread
+    return None
+
+
+def generate_cf_token(url: HttpUrl) -> CF_Token:
+    browser_path: str = None
+    with PickleDB(STORAGE) as db:
+        browser_path = db.get("browser_path")
+        if browser_path is None:
+            browser_path = str(input("Enter the path to Chromium: "))
+            db.set("browser_path", browser_path)
+
     with sync_playwright() as p:
         browser = p.chromium.launch(
-            executable_path=str(input("Enter the path to Chromium: ")),
+            executable_path=browser_path,
             headless=False,
             args=[
                 "--disable-blink-features=AutomationControlled",
@@ -27,4 +45,4 @@ def generate_token(url: HttpUrl) -> Token:
         cookies = {cookie["name"]: cookie["value"] for cookie in playwright_cookies}
         browser.close()
 
-    return Token(cookies, headers)
+    return CF_Token(cookies, headers)

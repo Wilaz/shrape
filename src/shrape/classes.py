@@ -48,16 +48,16 @@ class Thread:
         self.slid = slid
 
 
-class Token:
+class CF_Token:
     cookies: str
     headers: dict[str, str]
 
     def to_dict(self):
-        return {"token": {"cookies": self.cookies, "headers": self.headers}}
+        return {"cookies": self.cookies, "headers": self.headers}
 
     @classmethod
     def from_dict(cls, dictionary: dict[str, Any]) -> Self:
-        return cls(dictionary["token"]["cookies"], dictionary["token"]["headers"])
+        return cls(dictionary["cookies"], dictionary["headers"])
 
     def __init__(self, cookies: str, headers: dict[str, str]) -> None:
         self.cookies = cookies

@@ -4,17 +4,17 @@ from pathlib import Path
 
 import bs4
 from questionary import confirm
-from typed_argparse import Parser
 from tqdm import tqdm
 from curl_cffi import get
 
-from classes import Args, Thread, Token
-from db import dump_threads, get_threads, get_token, dump_token
-from utility import get_thread_by_url, BASE
-from tokens import generate_token
+from shrape.classes import Thread, CF_Token
+from shrape.db import get_cf_token, dump_cf_token
+from shrape.utility import generate_cf_token
+
 
 SLID = "404 - Not found"
-
+BASE = "https://soyjak.st"
+TURNSTILE = "<title>Just a moment...</title>"
 
 def process(path: Path, file) -> tuple[str, Path]:
     # Find the href attribute of the child element
@@ -64,9 +64,12 @@ def download(thread: Thread, unattended: bool) -> Thread:
 
     while True:
         try:
-            token: Token = get_token()
+            token: CF_Token = get_cf_token()
         except Exception as _:
-            dump_token(generate_token(url))
+            dump_cf_token(generate_cf_token(url))
+
+        if not token.cookies:
+            continue
 
         contents = bs4.BeautifulSoup(
             get(
@@ -79,10 +82,11 @@ def download(thread: Thread, unattended: bool) -> Thread:
         )
 
         assert contents.title
-        if str(contents.title) == "<title>Just a moment...</title>":
-            dump_token(generate_token(url))
+        if str(contents.title) == TURNSTILE:
+            dump_cf_token(generate_cf_token(url))
         else:
             break
+
 
     if contents.title.string == SLID:
         print(f"Thread #{id} on board '{board}' has slid")
@@ -155,28 +159,3 @@ def download(thread: Thread, unattended: bool) -> Thread:
 
     return thread
 
-
-def runner(args: Args) -> None:
-    threads_process: list[Thread] = []
-    threads_done: list[Thread] = []
-    threads_existing: list[Thread] = get_threads()
-
-    for url in args.url:
-        if get_thread_by_url(url, threads_existing) is None:
-            threads_process.append(Thread(url))
-        else:
-            thread = get_thread_by_url(url, threads_existing)
-            threads_process.append(thread)
-            threads_existing.remove(thread)
-
-    if args.reload:
-        threads_process += threads_existing
-
-    for thread in threads_process:
-        threads_done.append(download(thread, args.unattended))
-
-    dump_threads(threads_done)
-
-
-if __name__ == "__main__":
-    Parser(Args).bind(runner).run()
