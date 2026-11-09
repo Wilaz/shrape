@@ -5,7 +5,7 @@ from rtoml import load, dump
 
 from pickledb import PickleDB
 
-from shrape.classes import Thread, CF_Token
+from shrape.classes import Thread, Token
 from shrape.utility import get_thread_by_url, STORAGE
 
 THREADS = Path("./threads.toml")
@@ -49,11 +49,26 @@ def dump_threads(new_threads: list[Thread]) -> None:
     )
 
 
-def get_cf_token() -> CF_Token:
+def get_cf_token() -> Token | None:
     with PickleDB(STORAGE) as db:
-        return CF_Token.from_dict(db.get("cf_token"))
+        token = db.get("cf_token")
+        if token is None:
+            return None
+        return Token.from_dict(token)
 
 
-def dump_cf_token(token: CF_Token) -> None:
+def dump_cf_token(token: Token) -> None:
     with PickleDB(STORAGE) as db:
         db.set("cf_token", token.to_dict())
+
+def get_powblock_token() -> Token | None:
+    with PickleDB(STORAGE) as db:
+        token = db.get("powblock_token")
+        if token is None:
+            return None
+        return Token.from_dict(token)
+
+
+def dump_powblock_token(token: Token) -> None:
+    with PickleDB(STORAGE) as db:
+        db.set("powblock_token", token.to_dict())

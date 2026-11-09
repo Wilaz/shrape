@@ -11,14 +11,14 @@ from rich.markup import escape
 from pickledb import PickleDB
 
 
-from shrape.classes import Thread, CF_Token
+from shrape.classes import Thread, Token
 from shrape.db import get_cf_token, dump_cf_token
-from shrape.utility import generate_cf_token, print_info
+from shrape.utility import generate_token, print_info
 
 
 SLID = "404 - Not found"
 BASE = "https://soyjak.st"
-TURNSTILE = "<title>Just a moment...</title>"
+CAPTCHA = "Just a moment..."
 
 
 def process(file) -> tuple[str, Path, str]:
@@ -42,10 +42,10 @@ def download(thread: Thread, unattended: bool) -> Thread:
     manifest = PickleDB(path / "manifest.json").load()
 
     while True:
-        token: CF_Token = get_cf_token()
+        token: Token = get_cf_token()
 
         if not hasattr(token, "cookies"):
-            dump_cf_token(generate_cf_token(url))
+            dump_cf_token(generate_token(url))
             continue
 
         contents = bs4.BeautifulSoup(
@@ -59,8 +59,8 @@ def download(thread: Thread, unattended: bool) -> Thread:
         )
 
         assert contents.title
-        if str(contents.title) == TURNSTILE:
-            dump_cf_token(generate_cf_token(url))
+        if contents.title.string == CAPTCHA:
+            dump_cf_token(generate_token(url))
         else:
             break
 
