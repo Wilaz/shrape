@@ -3,6 +3,7 @@ from shrape.classes import Args, Thread
 from shrape.db import dump_threads, get_threads
 from shrape.utility import get_thread_by_url
 import shrape.imageboards.soyjak as soyjak
+import shrape.imageboards.eightchan as eightchan
 
 
 def runner(args: Args) -> None:
@@ -27,6 +28,8 @@ def runner(args: Args) -> None:
         match base_url:
             case soyjak.BASE:
                 threads_done.append(soyjak.download(thread, args.unattended))
+            case eightchan.BASE:
+                threads_done.append(eightchan.download(thread, args.unattended))
 
     dump_threads(threads_done)
 

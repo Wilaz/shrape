@@ -1,0 +1,16 @@
+Metadata-Version: 2.4
+Name: shrape
+Version: 0.1.5
+Summary: Scrapes images off of a Vichan instance
+Requires-Python: >=3.13
+License-File: LICENSE.md
+Requires-Dist: beautifulsoup4>=4.15.0
+Requires-Dist: curl-cffi>=0.16.0
+Requires-Dist: patchright>=1.64.4
+Requires-Dist: pickledb>=1.6
+Requires-Dist: pydantic>=2.14.0
+Requires-Dist: questionary>=2.1.1
+Requires-Dist: rich>=15.0.0
+Requires-Dist: rtoml>=0.14.0
+Requires-Dist: typed-argparse>=0.3.1
+Dynamic: license-file

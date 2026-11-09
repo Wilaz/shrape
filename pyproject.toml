@@ -1,6 +1,6 @@
 [project]
 name = "shrape"
-version = "0.1.5"
+version = "0.1.6"
 description = "Scrapes images off of a Vichan instance"
 requires-python = ">=3.13"
 dependencies = [
@@ -10,8 +10,8 @@ dependencies = [
     "pickledb>=1.6",
     "pydantic>=2.14.0",
     "questionary>=2.1.1",
+    "rich>=15.0.0",
     "rtoml>=0.14.0",
-    "tqdm>=4.70.0",
     "typed-argparse>=0.3.1",
 ]
 

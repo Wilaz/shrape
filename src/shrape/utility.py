@@ -5,6 +5,8 @@ from patchright.sync_api import sync_playwright
 from shrape.classes import CF_Token
 from pathlib import Path
 from pickledb import PickleDB
+from rich.table import Table
+from rich import print
 
 STORAGE = Path("./storage.json")
 
@@ -46,3 +48,15 @@ def generate_cf_token(url: HttpUrl) -> CF_Token:
         browser.close()
 
     return CF_Token(cookies, headers)
+
+
+def print_info(
+    site: str, id: str, board: str, new_files: int, new_dupes: int, old_dupes: int, existing: int
+) -> None:
+    table = Table(title=f"{board}#{id} ({site})", show_header=False, box=None, width=35)
+    table.add_column("Label")
+    table.add_column("Value", justify="right")
+    table.add_row("New files:", f"{new_files} ({new_dupes} duplicates)")
+    table.add_row("Existing files:", f"{existing} ({old_dupes} duplicates)")
+
+    print(table)

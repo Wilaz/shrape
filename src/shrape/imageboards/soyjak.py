@@ -4,52 +4,30 @@ from pathlib import Path
 
 import bs4
 from questionary import confirm
-from tqdm import tqdm
 from curl_cffi import get
+from rich import print
+from rich.progress import track
+from rich.markup import escape
+from pickledb import PickleDB
+
 
 from shrape.classes import Thread, CF_Token
 from shrape.db import get_cf_token, dump_cf_token
-from shrape.utility import generate_cf_token
+from shrape.utility import generate_cf_token, print_info
 
 
 SLID = "404 - Not found"
 BASE = "https://soyjak.st"
 TURNSTILE = "<title>Just a moment...</title>"
 
-def process(path: Path, file) -> tuple[str, Path]:
-    # Find the href attribute of the child element
-    href: str = file.find("a", href=True).get("href")
 
-    name: str = os.path.basename(href).split(".")[-1]
-
-    location = Path(
-        path
-        / f"{name[0]} ({file.find('span', attrs={'class': 'filehash'}).getText()}).{name[-1]}"
+def process(file) -> tuple[str, Path, str]:
+    block: str = file.find("a", class_="filename-download-link")
+    hashed_name = Path(
+        f"{file.find('span', attrs={'class': 'filehash'}).getText()}.{block.get('href').split('.')[-1]}"
     )
-    return href, location
 
-
-def info(
-    path: Path, filelist: bs4.ResultSet[bs4.element.PageElement | bs4.Tag]
-) -> tuple[int, int, list[bs4.element.PageElement]]:
-    existing: int = 0
-    duplicates: int = 0
-    files: list[bs4.element.PageElement] = []
-    locations: list[Path] = []
-
-    # Dupe check
-    for file in filelist:
-        _, location = process(path, file)
-
-        if location in locations:
-            duplicates += 1
-        elif os.path.exists(location):
-            existing += 1
-        else:
-            locations.append(location)
-            files.append(file)
-
-    return existing, duplicates, files
+    return block.get("href"), hashed_name, block.get("download")
 
 
 def download(thread: Thread, unattended: bool) -> Thread:
@@ -61,14 +39,13 @@ def download(thread: Thread, unattended: bool) -> Thread:
     path: Path = Path(f"./out/[{board}] ({id})/")
 
     contents = None
+    manifest = PickleDB(path / "manifest.json").load()
 
     while True:
-        try:
-            token: CF_Token = get_cf_token()
-        except Exception as _:
-            dump_cf_token(generate_cf_token(url))
+        token: CF_Token = get_cf_token()
 
-        if not token.cookies:
+        if not hasattr(token, "cookies"):
+            dump_cf_token(generate_cf_token(url))
             continue
 
         contents = bs4.BeautifulSoup(
@@ -87,7 +64,6 @@ def download(thread: Thread, unattended: bool) -> Thread:
         else:
             break
 
-
     if contents.title.string == SLID:
         print(f"Thread #{id} on board '{board}' has slid")
         if unattended:
@@ -101,21 +77,37 @@ def download(thread: Thread, unattended: bool) -> Thread:
         class_="fileinfo"
     )
 
-    existing, duplicates, files = info(path, filelist)
+    existing: int = 0
+    new_dupes: int = 0
+    old_dupes: int = 0
+    files: list[bs4.element.PageElement] = []
+    locations: list[Path] = []
+
+    # Dupe check
+    for file in filelist:
+        href, hashed_name, name = process(file)
+        assert name
+
+        manifest.set(href.split("/")[3], (name, str(hashed_name)))
+
+        location = path / hashed_name
+
+        if os.path.exists(location):
+            if location in locations:
+                old_dupes += 1
+            else:
+                locations.append(location)
+                existing += 1
+        else:
+            if location in locations:
+                new_dupes += 1
+            else:
+                locations.append(location)
+                files.append(file)
+
     file_count = len(files)
 
-    print(f"Thread #{id} on board '{board}' has:")
-
-    match file_count:
-        case 0:
-            print("    - no files to downloaded")
-        case 1:
-            print("    - 1 file to downloaded")
-        case _:
-            print(f"    - {file_count} files to downloaded")
-
-    print(f"    - {duplicates} duplicates")
-    print(f"    - {existing} existing files")
+    print_info("Soyjak Party", id, board, file_count, new_dupes, old_dupes, existing)
 
     if not unattended:
         if not confirm("Do you want to continue?").ask():
@@ -124,12 +116,13 @@ def download(thread: Thread, unattended: bool) -> Thread:
     if not os.path.exists(path):
         os.makedirs(path)
 
-    if file_count > 0:
-        progress_bar = tqdm(total=len(files), desc="Downloading Images")
+    manifest.save()
 
-        # Download files
-        for file in files:
-            href, location = process(path, file)
+    if file_count > 0:
+        for file in track(files, description="Downloading Images..."):
+            href, hashed_name, _ = process(file)
+            location = path / hashed_name
+
             img_response = get(
                 BASE + href,
                 impersonate="chrome",
@@ -138,11 +131,8 @@ def download(thread: Thread, unattended: bool) -> Thread:
                 headers=token.headers,
             )
             with open(location, "wb") as file:
-                _ = file.write(img_response.content)
-
-            _ = progress_bar.update()
-
-        progress_bar.close()
+                file.write(img_response.content)
+            print(f"[green]Downloaded {escape(location.name)}[/green]")
 
     if not isinstance(thread.name, str):
         subject = contents.find(class_="subject")
@@ -158,4 +148,3 @@ def download(thread: Thread, unattended: bool) -> Thread:
     print()
 
     return thread
-

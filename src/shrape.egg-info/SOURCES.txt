@@ -1,0 +1,15 @@
+LICENSE.md
+pyproject.toml
+src/shrape/__init__.py
+src/shrape/classes.py
+src/shrape/db.py
+src/shrape/main.py
+src/shrape/utility.py
+src/shrape.egg-info/PKG-INFO
+src/shrape.egg-info/SOURCES.txt
+src/shrape.egg-info/dependency_links.txt
+src/shrape.egg-info/entry_points.txt
+src/shrape.egg-info/requires.txt
+src/shrape.egg-info/top_level.txt
+src/shrape/imageboards/eightchan.py
+src/shrape/imageboards/soyjak.py

@@ -1,0 +1,2 @@
+[console_scripts]
+download = shrape.main:main
